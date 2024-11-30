@@ -93,7 +93,7 @@ func (p *promMeter) Float64Gauge(name string, opts ...metrics.InstrumentOption) 
 
 // Float64Histogram implements metrics.Meter.
 func (p *promMeter) Float64Histogram(name string, opts ...metrics.InstrumentOption) (metrics.Float64Histogram, error) {
-	m := p.getInstrument(name, opts)
+	m := p.getInstrument(name, instrumentTypeHistogram, opts)
 	return (*histogramInstrument[float64])(m), nil
 }
 
@@ -119,7 +119,7 @@ func (p *promMeter) Int64AsyncUpDownCounter(name string, callback metrics.Int64C
 
 // Int64Counter implements metrics.Meter.
 func (p *promMeter) Int64Counter(name string, opts ...metrics.InstrumentOption) (metrics.Int64Counter, error) {
-	m := p.getInstrument(name, opts)
+	m := p.getInstrument(name, instrumentTypeCounter, opts)
 	return (*counterInstrument[int64])(m), nil
 }
 
@@ -135,7 +135,7 @@ func (p *promMeter) Int64Histogram(name string, opts ...metrics.InstrumentOption
 
 // Int64UpDownCounter implements metrics.Meter.
 func (p *promMeter) Int64UpDownCounter(name string, opts ...metrics.InstrumentOption) (metrics.Int64UpDownCounter, error) {
-	m := p.getInstrument(name, opts)
+	m := p.getInstrument(name, instrumentTypeCounter, opts)
 	return (*gaugeInstrument[int64])(m), nil
 }
 
@@ -143,11 +143,17 @@ func (p *promMeter) Int64UpDownCounter(name string, opts ...metrics.InstrumentOp
 
 // getInstrument returns a previously cached instrument or
 // instantiates and caches a new one.
-func (p *promMeter) getInstrument(name string, opts []metrics.InstrumentOption) *promInstrument {
+func (p *promMeter) getInstrument(name string, typ instrumentType, opts []metrics.InstrumentOption) *promInstrument {
 	o := collectInstrumentOptions(opts)
-	name = p.parent.prefix + instrumentName(name, instrumentTypeCounter, o.UnitLabel)
 
-	m := p.parent.metricCache.lookupOrInsert(name, func() *promInstrument {
+	k := cacheKey{
+		name: name,
+		typ:  instrumentTypeCounter,
+		unit: o.UnitLabel,
+	}
+
+	m := p.parent.metricCache.lookupOrInsert(k, func() *promInstrument {
+		name = p.parent.prefix + instrumentName(name, typ, o.UnitLabel)
 		return &promInstrument{
 			name:        name,
 			description: o.Description,
@@ -158,13 +164,19 @@ func (p *promMeter) getInstrument(name string, opts []metrics.InstrumentOption) 
 	return m
 }
 
+type cacheKey struct {
+	name string
+	typ  instrumentType
+	unit string
+}
+
 type cache struct {
 	l sync.Mutex
 	// TODO - sync.Map would likely have less contention given how this map is used
-	m map[string]*promInstrument
+	m map[cacheKey]*promInstrument
 }
 
-func (c *cache) lookupOrInsert(k string, mk func() *promInstrument) *promInstrument {
+func (c *cache) lookupOrInsert(k cacheKey, mk func() *promInstrument) *promInstrument {
 	c.l.Lock()
 	defer c.l.Unlock()
 
@@ -174,7 +186,7 @@ func (c *cache) lookupOrInsert(k string, mk func() *promInstrument) *promInstrum
 	}
 
 	if c.m == nil {
-		c.m = map[string]*promInstrument{}
+		c.m = map[cacheKey]*promInstrument{}
 	}
 
 	metric = mk()
