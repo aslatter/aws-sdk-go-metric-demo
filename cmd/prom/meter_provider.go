@@ -68,27 +68,27 @@ type promMeter struct {
 
 // Float64AsyncCounter implements metrics.Meter.
 func (p *promMeter) Float64AsyncCounter(name string, callback metrics.Float64Callback, opts ...metrics.InstrumentOption) (metrics.AsyncInstrument, error) {
-	panic("unimplemented")
+	return &noopInstrumentFloat{}, nil
 }
 
 // Float64AsyncGauge implements metrics.Meter.
 func (p *promMeter) Float64AsyncGauge(name string, callback metrics.Float64Callback, opts ...metrics.InstrumentOption) (metrics.AsyncInstrument, error) {
-	panic("unimplemented")
+	return &noopInstrumentFloat{}, nil
 }
 
 // Float64AsyncUpDownCounter implements metrics.Meter.
 func (p *promMeter) Float64AsyncUpDownCounter(name string, callback metrics.Float64Callback, opts ...metrics.InstrumentOption) (metrics.AsyncInstrument, error) {
-	panic("unimplemented")
+	return &noopInstrumentFloat{}, nil
 }
 
 // Float64Counter implements metrics.Meter.
 func (p *promMeter) Float64Counter(name string, opts ...metrics.InstrumentOption) (metrics.Float64Counter, error) {
-	panic("unimplemented")
+	return &noopInstrumentFloat{}, nil
 }
 
 // Float64Gauge implements metrics.Meter.
 func (p *promMeter) Float64Gauge(name string, opts ...metrics.InstrumentOption) (metrics.Float64Gauge, error) {
-	panic("unimplemented")
+	return &noopInstrumentFloat{}, nil
 }
 
 // Float64Histogram implements metrics.Meter.
@@ -99,22 +99,22 @@ func (p *promMeter) Float64Histogram(name string, opts ...metrics.InstrumentOpti
 
 // Float64UpDownCounter implements metrics.Meter.
 func (p *promMeter) Float64UpDownCounter(name string, opts ...metrics.InstrumentOption) (metrics.Float64UpDownCounter, error) {
-	panic("unimplemented")
+	return &noopInstrumentFloat{}, nil
 }
 
 // Int64AsyncCounter implements metrics.Meter.
 func (p *promMeter) Int64AsyncCounter(name string, callback metrics.Int64Callback, opts ...metrics.InstrumentOption) (metrics.AsyncInstrument, error) {
-	panic("unimplemented")
+	return &noopInstrumentFloat{}, nil
 }
 
 // Int64AsyncGauge implements metrics.Meter.
 func (p *promMeter) Int64AsyncGauge(name string, callback metrics.Int64Callback, opts ...metrics.InstrumentOption) (metrics.AsyncInstrument, error) {
-	panic("unimplemented")
+	return &noopInstrumentFloat{}, nil
 }
 
 // Int64AsyncUpDownCounter implements metrics.Meter.
 func (p *promMeter) Int64AsyncUpDownCounter(name string, callback metrics.Int64Callback, opts ...metrics.InstrumentOption) (metrics.AsyncInstrument, error) {
-	panic("unimplemented")
+	return &noopInstrumentFloat{}, nil
 }
 
 // Int64Counter implements metrics.Meter.
@@ -125,12 +125,12 @@ func (p *promMeter) Int64Counter(name string, opts ...metrics.InstrumentOption) 
 
 // Int64Gauge implements metrics.Meter.
 func (p *promMeter) Int64Gauge(name string, opts ...metrics.InstrumentOption) (metrics.Int64Gauge, error) {
-	panic("unimplemented")
+	return &noopInstrumentInt{}, nil
 }
 
 // Int64Histogram implements metrics.Meter.
 func (p *promMeter) Int64Histogram(name string, opts ...metrics.InstrumentOption) (metrics.Int64Histogram, error) {
-	panic("unimplemented")
+	return &noopInstrumentInt{}, nil
 }
 
 // Int64UpDownCounter implements metrics.Meter.
@@ -138,8 +138,6 @@ func (p *promMeter) Int64UpDownCounter(name string, opts ...metrics.InstrumentOp
 	m := p.getInstrument(name, instrumentTypeCounter, opts)
 	return (*gaugeInstrument[int64])(m), nil
 }
-
-// todo - noop instrument for unimplemented stuff?
 
 // getInstrument returns a previously cached instrument or
 // instantiates and caches a new one.
