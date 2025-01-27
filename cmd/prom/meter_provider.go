@@ -171,26 +171,15 @@ type cacheKey struct {
 }
 
 type cache struct {
-	l sync.Mutex
-	// TODO - sync.Map would likely have less contention given how this map is used
-	m map[cacheKey]*promInstrument
+	m sync.Map
 }
 
 func (c *cache) lookupOrInsert(k cacheKey, mk func() *promInstrument) *promInstrument {
-	c.l.Lock()
-	defer c.l.Unlock()
-
-	metric, ok := c.m[k]
+	metricAny, ok := c.m.Load(k)
 	if ok {
-		return metric
+		return metricAny.(*promInstrument)
 	}
 
-	if c.m == nil {
-		c.m = map[cacheKey]*promInstrument{}
-	}
-
-	metric = mk()
-	c.m[k] = metric
-
-	return metric
+	metricAny, _ = c.m.LoadOrStore(k, mk())
+	return metricAny.(*promInstrument)
 }
