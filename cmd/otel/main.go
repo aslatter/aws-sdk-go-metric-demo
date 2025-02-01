@@ -70,6 +70,7 @@ func setupOTELExporter(promRegistry *prometheus.Registry) *sdkmetric.MeterProvid
 	metricExporter, err := otelprom.New(
 		otelprom.WithNamespace("aws"),
 		otelprom.WithoutScopeInfo(),
+		otelprom.WithoutTargetInfo(),
 		otelprom.WithRegisterer(promRegistry),
 
 		// OTEL default buckets assume you're using milliseconds. Substitute defaults
@@ -95,6 +96,14 @@ func setupOTELExporter(promRegistry *prometheus.Registry) *sdkmetric.MeterProvid
 	// create a meter-provider associated with the exporter
 	meterProvider := sdkmetric.NewMeterProvider(
 		sdkmetric.WithReader(metricExporter),
+		// opt-out of metrics which appear to be purely client-side computation
+		sdkmetric.WithView(func(i sdkmetric.Instrument) (sdkmetric.Stream, bool) {
+			switch i.Name {
+			case "client.call.serialization_duration", "client.call.deserialization_duration", "client.call.resolve_endpoint_duration", "client.call.auth.signing_duration":
+				return sdkmetric.Stream{Aggregation: sdkmetric.AggregationDrop{}}, true
+			}
+			return sdkmetric.Stream{}, false
+		}),
 	)
 
 	return meterProvider
