@@ -6,31 +6,24 @@ import (
 	"github.com/aws/smithy-go/metrics"
 )
 
-type noopInstrumentFloat struct{}
+type noopInstrument[T float64 | int64] struct{}
 
-// Sample implements metrics.Float64Gauge.
-func (n *noopInstrumentFloat) Sample(context.Context, float64, ...metrics.RecordMetricOption) {
-	// noop
-}
-
-// Add implements metrics.Float64Counter.
-func (n *noopInstrumentFloat) Add(context.Context, float64, ...metrics.RecordMetricOption) {
+// Add implements metrics.{FloatInt}64UpDownCounter.
+func (n *noopInstrument[T]) Add(context.Context, T, ...metrics.RecordMetricOption) {
 	// noop
 }
 
 // Stop implements metrics.AsyncInstrument.
-func (n *noopInstrumentFloat) Stop() {
+func (n *noopInstrument[T]) Stop() {
 	// noop
 }
 
-type noopInstrumentInt struct{}
-
-// Record implements metrics.Int64Histogram.
-func (n *noopInstrumentInt) Record(context.Context, int64, ...metrics.RecordMetricOption) {
+// Sample implements metrics.{Float|Int}64Gauge.
+func (n *noopInstrument[T]) Sample(context.Context, T, ...metrics.RecordMetricOption) {
 	// noop
 }
 
-// Sample implements metrics.Int64Gauge.
-func (n *noopInstrumentInt) Sample(context.Context, int64, ...metrics.RecordMetricOption) {
+// Record implements metrics.{Float|Int}64Histogram.
+func (n *noopInstrument[T]) Record(context.Context, T, ...metrics.RecordMetricOption) {
 	// noop
 }
