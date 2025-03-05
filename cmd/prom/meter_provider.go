@@ -23,6 +23,7 @@ var _ metrics.MeterProvider = (*promMeterProvider)(nil)
 type promMeterProvider struct {
 	prefix   string
 	registry prometheus.Registerer
+	filter   func(name string) bool
 	// The OTEL meter-provider caches instruments, and the AWS SDK
 	// assumes this behavior. The prometheus client does not do this
 	// natively.
@@ -32,6 +33,7 @@ type promMeterProvider struct {
 type meterProviderOptions struct {
 	namespace string
 	registry  prometheus.Registerer
+	filter    func(name string) bool
 }
 
 func newMeterProvider(opts *meterProviderOptions) *promMeterProvider {
@@ -49,6 +51,7 @@ func newMeterProvider(opts *meterProviderOptions) *promMeterProvider {
 	return &promMeterProvider{
 		registry: r,
 		prefix:   prefix,
+		filter:   opts.filter,
 	}
 }
 
@@ -94,6 +97,9 @@ func (p *promMeter) Float64Gauge(name string, opts ...metrics.InstrumentOption) 
 // Float64Histogram implements metrics.Meter.
 func (p *promMeter) Float64Histogram(name string, opts ...metrics.InstrumentOption) (metrics.Float64Histogram, error) {
 	m := p.getInstrument(name, instrumentTypeHistogram, opts)
+	if m == nil {
+		return &noopInstrument[float64]{}, nil
+	}
 	return (*histogramInstrument[float64])(m), nil
 }
 
@@ -120,6 +126,9 @@ func (p *promMeter) Int64AsyncUpDownCounter(name string, callback metrics.Int64C
 // Int64Counter implements metrics.Meter.
 func (p *promMeter) Int64Counter(name string, opts ...metrics.InstrumentOption) (metrics.Int64Counter, error) {
 	m := p.getInstrument(name, instrumentTypeCounter, opts)
+	if m == nil {
+		return &noopInstrument[int64]{}, nil
+	}
 	return (*counterInstrument[int64])(m), nil
 }
 
@@ -136,12 +145,19 @@ func (p *promMeter) Int64Histogram(name string, opts ...metrics.InstrumentOption
 // Int64UpDownCounter implements metrics.Meter.
 func (p *promMeter) Int64UpDownCounter(name string, opts ...metrics.InstrumentOption) (metrics.Int64UpDownCounter, error) {
 	m := p.getInstrument(name, instrumentTypeCounter, opts)
+	if m == nil {
+		return &noopInstrument[int64]{}, nil
+	}
 	return (*gaugeInstrument[int64])(m), nil
 }
 
 // getInstrument returns a previously cached instrument or
 // instantiates and caches a new one.
 func (p *promMeter) getInstrument(name string, typ instrumentType, opts []metrics.InstrumentOption) *promInstrument {
+	if p.parent.filter != nil && !p.parent.filter(name) {
+		return nil
+	}
+
 	o := collectInstrumentOptions(opts)
 
 	k := cacheKey{

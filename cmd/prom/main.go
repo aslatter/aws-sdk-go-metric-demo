@@ -28,6 +28,7 @@ func mainErr() error {
 	meterProvider := newMeterProvider(&meterProviderOptions{
 		registry:  promRegistry,
 		namespace: "aws",
+		filter:    filterMetrics,
 	})
 
 	// for demo purposes, scrape all prom metrics and dump to stdout
@@ -92,6 +93,14 @@ func callDynamoDB(ctx context.Context, meterProvider metrics.MeterProvider, cfg 
 	_, err = client.ListGlobalTables(ctx, &dynamodb.ListGlobalTablesInput{})
 
 	return err
+}
+
+func filterMetrics(name string) bool {
+	switch name {
+	case "client.call.serialization_duration", "client.call.deserialization_duration", "client.call.resolve_endpoint_duration", "client.call.auth.signing_duration":
+		return false
+	}
+	return true
 }
 
 // for demo purposes, dump all prom metrics to stdout
