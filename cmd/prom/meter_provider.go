@@ -162,7 +162,7 @@ func (p *promMeter) getInstrument(name string, typ instrumentType, opts []metric
 
 	k := cacheKey{
 		name: name,
-		typ:  instrumentTypeCounter,
+		typ:  typ,
 		unit: o.UnitLabel,
 	}
 
