@@ -21,7 +21,7 @@ func (i *counterInstrument[T]) Add(ctx context.Context, v T, opts ...metrics.Rec
 		if len(keys) > 0 {
 			var fixedKeys []string
 			for _, k := range keys {
-				fixedKeys = append(fixedKeys, fixName(k))
+				fixedKeys = append(fixedKeys, fixLabelName(k))
 			}
 
 			m := prometheus.NewCounterVec(

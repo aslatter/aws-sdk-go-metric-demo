@@ -145,3 +145,16 @@ func fixName(name string) string {
 	name = manyUnderneathies.ReplaceAllString(name, "_")
 	return strings.Trim(name, "_")
 }
+
+func fixLabelName(name string) string {
+	// for some reason labels don't coalesce adjacent
+	// underscores. This could be because a prefix
+	// of "__" has special meaning in prom?
+	name = invalidCharRegexp.ReplaceAllString(name, "_")
+	if len(name) > 0 && name[0] == '_' {
+		if len(name) < 1 || name[1] != '_' {
+			name = "key" + name
+		}
+	}
+	return name
+}
