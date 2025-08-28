@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"reflect"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/smithy-go/metrics"
 	"github.com/aws/smithy-go/metrics/smithyotelmetrics"
 
 	otelprom "go.opentelemetry.io/otel/exporters/prometheus"
@@ -38,9 +41,9 @@ func mainErr() error {
 		return fmt.Errorf("loading aws config: %s", err)
 	}
 
-	s3c := s3.NewFromConfig(cfg, func(o *s3.Options) {
-		o.MeterProvider = smithyotelmetrics.Adapt(meterProvider)
-	})
+	addMeterProvider(&cfg, smithyotelmetrics.Adapt(meterProvider))
+
+	s3c := s3.NewFromConfig(cfg)
 
 	// make a few API calls
 
@@ -122,4 +125,45 @@ func scrapePromMetrics(promRegistry *prometheus.Registry) {
 			panic(err)
 		}
 	}
+}
+
+// well this is gross.
+// https://github.com/aws/aws-sdk-go-v2/issues/2927
+func addMeterProvider(cfg *aws.Config, meterProvider metrics.MeterProvider) {
+	mpv := reflect.ValueOf(meterProvider)
+	noopType := reflect.TypeFor[metrics.NopMeterProvider]()
+	cfg.ServiceOptions = append(cfg.ServiceOptions, func(s string, a any) {
+		v := reflect.ValueOf(a)
+		// we expect 'a' to be a pointer to a struct with a
+		// 'MeterProvider' field of type 'metrics.MeterProvider'
+		if v.Kind() != reflect.Pointer {
+			return
+		}
+		ve := v.Elem()
+
+		if ve.Kind() != reflect.Struct {
+			return
+		}
+
+		f := ve.FieldByName("MeterProvider")
+		if !f.IsValid() {
+			return
+		}
+		if !f.CanSet() {
+			return
+		}
+
+		// check that the field is empty. the SDK will initialize
+		// empty meter-providers with a "no op" meter provider, so we
+		// check for that, too.
+		if !f.IsZero() && f.Kind() == reflect.Interface && f.Elem().Type() != noopType {
+			return
+		}
+
+		if !mpv.Type().AssignableTo(f.Type()) {
+			return
+		}
+
+		f.Set(mpv)
+	})
 }
